@@ -1,0 +1,30 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# SQLite database files
+*.db
+*.sqlite
+
+# CSVs (optional: if you want to ignore raw data)
+# /data/*.csv
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# Environment variables / secrets
+.env
+
+# Virtual environment folders
+venv/
+.env/
+env/
+ENV/
+
+# OS system files
+.DS_Store
+Thumbs.db
+
+# VSCode settings (if you use it)
+.vscode/
