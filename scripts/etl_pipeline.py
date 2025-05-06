@@ -1,6 +1,16 @@
 import pandas as pd
 import sqlite3
 import os
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.StreamHandler()
+    ]
+)
 
 # File paths and constants
 RAW_DATA_FILE = 'data/raw/movie_metadata.csv'
@@ -11,6 +21,7 @@ TABLE_NAME = 'movies'
 # Extract
 def extract(file_path):
     """Extract data from CSV."""
+    logging.info("Extracting data...")
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"File not found: {file_path}")
     df = pd.read_csv(file_path)
@@ -53,6 +64,7 @@ def normalize_text_fields(df):
 # Full Transform
 def transform(df):
     """Apply all data cleaning steps."""
+    logging.info("Transforming data...")
     df = clean_column_names(df)
     df = drop_missing_critical(df)
     df = fill_missing_values(df)
@@ -63,11 +75,13 @@ def transform(df):
 # Save processed data
 def save_processed(df, output_path):
     """Save the cleaned data frame to a processed data file."""
+    logging.info("Saving cleaned data")
     df.to_csv(output_path, index=False)
 
 # Load
 def load(df, db_path, table_name):
     """Load data into SQLite database."""
+    logging.info("Loading cleaned data into database...")
     conn = sqlite3.connect(db_path)
     df.to_sql(table_name, conn, if_exists='replace', index=False)
     conn.close()
@@ -80,9 +94,9 @@ def main():
         df = transform(df)
         save_processed(df, PROCESSED_DATA_FILE)
         load(df, DB_PATH, TABLE_NAME)
-        print("ETL Pipeline completed successfully.")
+        logging.info("ETL Pipeline completed successfully.")
     except Exception as e:
-        print(f"ETL Pipeline failed: {e}")
+        logging.error(f"ETL Pipeline failed: {e}")
 
 if __name__ == '__main__':
     main()
