@@ -2,6 +2,7 @@ import pandas as pd
 import sqlite3
 import os
 import logging
+import argparse
 
 # Configure logging
 logging.basicConfig(
@@ -86,14 +87,23 @@ def load(df, db_path, table_name):
     df.to_sql(table_name, conn, if_exists='replace', index=False)
     conn.close()
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="Run the ETL Pipeline for movie metadata.")
+    parser.add_argument('--raw_data', type=str, default=RAW_DATA_FILE, help='Path to raw CSV file')
+    parser.add_argument('--processed_data', type=str, default=PROCESSED_DATA_FILE, help='Path to processed/cleaned CSV file') 
+    parser.add_argument('--db_path', type=str, default=DB_PATH, help='Path to SQLite database') 
+    parser.add_argument('--table_name', type=str, default=TABLE_NAME, help='Table name in the database') 
+    return parser.parse_args()
+
 # Main ETL pipeline
 def main():
     """Run the ETL pipeline."""
+    args = parse_args()
     try:
-        df = extract(RAW_DATA_FILE)
+        df = extract(args.raw_data)
         df = transform(df)
-        save_processed(df, PROCESSED_DATA_FILE)
-        load(df, DB_PATH, TABLE_NAME)
+        save_processed(df, args.processed_data)
+        load(df, args.db_path, args.table_name)
         logging.info("ETL Pipeline completed successfully.")
     except Exception as e:
         logging.error(f"ETL Pipeline failed: {e}")
