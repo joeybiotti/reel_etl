@@ -1,20 +1,41 @@
 import pandas as pd
 import sqlite3
+import os 
+
+RAW_DATA_FILE = 'data/raw/movie_metadata.csv'
+DB_PATH ='movies.db'
+TABLE_NAME='movies'
 
 # Extract
-print("Extracting data...")
-df = pd.read_csv('data/raw/movie_metadata.csv')
+def extract(file_path):
+    """Extract data from CSV."""
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"File not found : {file_path}")
+    df = pd.read_csv(file_path)
+    return df
 
 # Transform 
-print("Transforming data...")
-df.columns = [col.strip().lower().replace(' ', '_') for col in df.columns]
-df = df.dropna()
+def transform(df):
+    """Basic transformation: clean column names."""
+    df.columns = [col.strip().lower().replace(' ', '_') for col in df.columns]
+    return df
 
 # Load
-print("Loading data into SQLite...")
-conn = sqlite3.connect('movies.db')
-df.to_sql('movies', conn,if_exists='replace', index=False)
-print(pd.read_sql_query("SELECT * FROM movies LIMIT 5;",conn))
-conn.close()
+def load(df, db_path, table_name):
+    """Load data into SQLite db"""
+    conn = sqlite3.connect(db_path)
+    df.to_sql(table_name,conn, if_exists='replace', index=False)
+    conn.close()
 
-print("ETL Process complete.")
+def main():
+    """Run the ELT pipeline"""
+    try:
+        df = extract(RAW_DATA_FILE)
+        df= transform(df)
+        load(df, DB_PATH, TABLE_NAME)
+        print("ETL Pipeline completed successfully.")
+    except Exception as e:
+        print(f"ELT Pipeline failed: {e}")
+        
+if __name__ == '__main__':
+    main()
