@@ -28,3 +28,7 @@ Thumbs.db
 
 # VSCode settings (if you use it)
 .vscode/
+
+# Ignore log files
+logs/
+*.log

@@ -4,12 +4,22 @@ import os
 import logging
 import argparse
 
+from logging.handlers import RotatingFileHandler
+
+os.makedirs('logs', exist_ok=True)
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[
-        logging.StreamHandler()
+        logging.StreamHandler(),
+        RotatingFileHandler(
+            'logs/etl_pipeline.log',
+            maxBytes=5_000_000,
+            backupCount=5,
+            encoding='utf-8'
+        )
     ]
 )
 
@@ -31,17 +41,20 @@ def extract(file_path):
 # Transform helper functions
 def clean_column_names(df):
     """Clean column names by stripping spaces, converting to lowercase, and replacing spaces with underscores."""
+    logging.info("Cleaning column names...")
     df.columns = [col.strip().lower().replace(' ', '_') for col in df.columns]
     return df
 
 def drop_missing_critical(df):
     """Drop rows with missing values in critical columns."""
+    logging.info("Dropping rows with missing critical columns...")
     critical_columns = ['movie_title', 'title_year', 'director_name']
     df = df.dropna(subset=critical_columns)
     return df
 
 def fill_missing_values(df):
     """Fill missing values in specific columns with default values."""
+    logging.info("Filling missing values in specific columns with default values...")
     df.loc[:, 'gross'] = df['gross'].fillna(0)
     df.loc[:, 'budget'] = df['budget'].fillna(0)
     df.loc[:, 'content_rating'] = df['content_rating'].fillna('Not Rated')
@@ -49,6 +62,7 @@ def fill_missing_values(df):
 
 def fix_data_types(df):
     """Fix data types for specific columns."""
+    logging.info("Fixing data types for 'title_year', 'budget', 'gross', 'imdb_score'")
     df.loc[:, 'title_year'] = df['title_year'].astype('Int64')
     df.loc[:, 'budget'] = df['budget'].fillna(0).astype(float)
     df.loc[:, 'gross'] = df['gross'].fillna(0).astype(float)
@@ -57,6 +71,7 @@ def fix_data_types(df):
 
 def normalize_text_fields(df):
     """Normalize text fields by converting to lowercase."""
+    logging.info("Normalizing text fields text fields: 'genres', 'language', 'country'...")
     for col in ['genres', 'language', 'country']:
         if col in df.columns:
             df.loc[:, col] = df[col].astype(str).str.lower()
@@ -76,7 +91,7 @@ def transform(df):
 # Save processed data
 def save_processed(df, output_path):
     """Save the cleaned data frame to a processed data file."""
-    logging.info("Saving cleaned data")
+    logging.info("Saving cleaned data...")
     df.to_csv(output_path, index=False)
 
 # Load
