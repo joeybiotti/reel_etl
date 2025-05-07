@@ -3,6 +3,8 @@ import pandas as pd
 import sqlite3
 from scripts.etl_pipeline import extract, transform, normalize_text_fields,save_processed,load
 
+#=== Fixtures ===#
+
 @pytest.fixture
 def sample_df():
     """Fixture to create a sample dataframe for testing."""
@@ -20,9 +22,17 @@ def sample_df():
     }
     return pd.DataFrame(data)
 
-def test_extract_returns_dataframe():
-    """Test that extract function loades CSV into a DataFrame"""
-    df = extract('data/raw/movie_metadata.csv')
+#=== Tests ===#
+
+@pytest.mark.parametrize(
+    "file_path",
+    [
+        ('data/raw/movie_metadata.csv')
+    ]
+)
+def test_extract_returns_dataframe(file_path):
+    """Test that extract function loads CSV into a DataFrame"""
+    df = extract(file_path)
     assert isinstance(df, pd.DataFrame)
     assert not df.empty
 
@@ -40,16 +50,29 @@ def test_transform_cleans_dataframe(sample_df):
     assert all(' ' not in col for col in transformed_df.columns)
     assert all(col == col.lower() for col in transformed_df.columns)
 
-def test_normalize_text_fields(sample_df):
+@pytest.mark.parametrize(
+    "column_name,input_values,expected_values",
+    [
+        ("genres", ["Action", "Comedy", "Drama"], ["action", "comedy", "drama"]),
+        ("language", ["English", "French", "Spanish"], ["english", "french", "spanish"]),
+        ("country", ["USA", "France", "Spain"], ["usa", "france", "spain"]),
+    ]
+)
+def test_normalize_text_fields(column_name, input_values, expected_values):
     """Test that text fields are normalized to lowercase."""
-    normalized_df = normalize_text_fields(sample_df.copy())
-    assert all(normalized_df['genres'].str.islower())
-    assert all(normalized_df['language'].str.islower())
-    assert all(normalized_df['country'].str.islower())
-    
-def test_save_processed_creates_files(sample_df, tmp_path):
+    df = pd.DataFrame({column_name: input_values})
+    normalized_df = normalize_text_fields(df)
+    assert normalized_df[column_name].tolist() == expected_values
+
+@pytest.mark.parametrize(
+    "output_filename",
+    [
+        ("test_output.csv")
+    ]
+)     
+def test_save_processed_saves_nonempty_csv(sample_df, tmp_path,output_filename):
     """Test that save_process correctly saves a CSV file"""
-    output_file = tmp_path/"test_output.csv"
+    output_file = tmp_path/output_filename
     save_processed(sample_df, output_file)
     
     # Check file was created
@@ -59,12 +82,17 @@ def test_save_processed_creates_files(sample_df, tmp_path):
     saved_df = pd.read_csv(output_file)
     assert not saved_df.empty
     assert list(saved_df.columns) == list(sample_df.columns)
-    
-def test_load_inserts_data_into_database(sample_df, tmp_path):
+ 
+@pytest.mark.parametrize(
+    "table_name",
+    [
+        ("test_movies")
+    ]
+)    
+def test_load_inserts_dataframe_into_sqlite(sample_df, tmp_path, table_name):
     """Test correctly inserts data into SQLite db"""
     db_file = tmp_path/"test_movies.db"
-    table_name = "test_movies"
-    
+
     # Load sample data into temp db
     load(sample_df, db_file, table_name)
     
