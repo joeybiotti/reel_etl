@@ -1,0 +1,2 @@
+pandas==1.5.3
+python-json-logger==2.0.4

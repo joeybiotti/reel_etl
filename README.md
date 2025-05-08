@@ -13,17 +13,17 @@ It focuses on real-world data engineering practices, using lightweight tooling a
 - Python 3.x
 - SQLite3 (local database)
 - Pandas (for data manipulation)
+- Python Logging (for monitoring ETL processes)
 - SQL (for querying and modeling)
 
 ## Project Structure
 
-```
-/data/            # Raw and cleaned CSVs
-/scripts/         # Python scripts for ETL
-/sql/             # SQL queries and schema creation
-/notebooks/       # (Optional) Jupyter notebooks for exploration
+/data/ # Raw and cleaned CSVs
+/scripts/ # ETL scripts and utilities (logging, decorators)
+/sql/ # SQL queries and schema creation
+/notebooks/ # (Optional) Jupyter notebooks for exploration
 README.md
-```
+requirements.txt
 
 ## Goals
 
@@ -38,18 +38,14 @@ README.md
 ## How to Run
 
 1. Clone the repo
-2. Install requirements:
-
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
    ```
-   pip install pandas
-   ```
-
 3. Run the ETL script:
-
-   ```
+   ```bash
    python scripts/etl_pipeline.py
    ```
-
 4. Explore the SQLite database with your favorite tool (e.g., DB Browser for SQLite).
 
 ## Future Ideas
