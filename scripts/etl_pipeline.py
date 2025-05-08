@@ -3,15 +3,15 @@ import sqlite3
 import os
 import logging
 import argparse
-import time 
+import time
 import functools
 from logging.handlers import RotatingFileHandler
 from pythonjsonlogger import jsonlogger
 
-# Make /logs directory 
+# Make /logs directory
 os.makedirs('logs', exist_ok=True)
 
-# Console handler 
+# Console handler
 console_handler = logging.StreamHandler()
 console_handler.setLevel(logging.INFO)
 console_formatter = logging.Formatter(
@@ -51,6 +51,7 @@ logging.basicConfig(
     ]
 )
 
+
 def log_time(func):
     """Decorator to log the time a function takes to execute."""
     @functools.wraps(func)
@@ -61,7 +62,8 @@ def log_time(func):
         logging.info(f"{func.__name__} completed in {elapsed:.2f} seconds.")
         return result
     return wrapper
-    
+
+
 # File paths and constants
 RAW_DATA_FILE = 'data/raw/movie_metadata.csv'
 PROCESSED_DATA_FILE = 'data/processed/movie_metadata_cleaned.csv'
@@ -69,6 +71,8 @@ DB_PATH = 'movies.db'
 TABLE_NAME = 'movies'
 
 # Extract
+
+
 @log_time
 def extract(file_path):
     """Extract data from CSV."""
@@ -79,12 +83,15 @@ def extract(file_path):
     return df
 
 # Transform helper functions
+
+
 @log_time
 def clean_column_names(df):
     """Clean column names by stripping spaces, converting to lowercase, and replacing spaces with underscores."""
     logging.info("Cleaning column names...")
     df.columns = [col.strip().lower().replace(' ', '_') for col in df.columns]
     return df
+
 
 @log_time
 def drop_missing_critical(df):
@@ -97,26 +104,31 @@ def drop_missing_critical(df):
     logging.info(f'Dropped {dropped} rows missing critical columns.')
     return df
 
+
 @log_time
 def fill_missing_values(df):
     """Fill missing values in specific columns with default values."""
-    for col, default in [('gross',0), ('budget',0), ('content_rating', 'Not Rated')]:
+    for col, default in [('gross', 0), ('budget', 0),
+                         ('content_rating', 'Not Rated')]:
         missing_before = df[col].isnull().sum()
         df.loc[:, col] = df[col].fillna(default)
-        missing_after =  df[col].isnull().sum()
+        missing_after = df[col].isnull().sum()
         filled = missing_before - missing_after
         logging.info(f"Filled {filled} missing values in column '{col}'.")
     return df
 
+
 @log_time
 def fix_data_types(df):
     """Fix data types for specific columns."""
-    logging.info("Fixing data types for 'title_year', 'budget', 'gross', 'imdb_score'")
+    logging.info(
+        "Fixing data types for 'title_year', 'budget', 'gross', 'imdb_score'")
     df.loc[:, 'title_year'] = df['title_year'].astype('Int64')
     df.loc[:, 'budget'] = df['budget'].fillna(0).astype(float)
     df.loc[:, 'gross'] = df['gross'].fillna(0).astype(float)
     df.loc[:, 'imdb_score'] = df['imdb_score'].fillna(0).astype(float)
     return df
+
 
 @log_time
 def normalize_text_fields(df):
@@ -128,6 +140,8 @@ def normalize_text_fields(df):
     return df
 
 # Full Transform
+
+
 @log_time
 def transform(df):
     """Apply all data cleaning steps."""
@@ -139,35 +153,44 @@ def transform(df):
     df = normalize_text_fields(df)
     return df
 
+
 def validate_data(df):
     """Perform data validation checks on transformed data."""
     logging.info('Validating data...')
-    
+
     # Ensure required columns exist
-    required_columns = ['movie_title', 'title_year', 'director_name', 'budget', 'gross', 'imdb_score']
+    required_columns = [
+        'movie_title',
+        'title_year',
+        'director_name',
+        'budget',
+        'gross',
+        'imdb_score']
     for col in required_columns:
         if col not in df.columns:
             raise ValueError(f"Missing column: {col}")
-        
-    # Value checks 
+
+    # Value checks
     if (df['budget'] < 0).any():
         raise ValueError('Budget contains negative values.')
 
     if not df['gross'].get(0).all():
         raise ValueError('Budget contains negative values.')
-    
-    if not df['imdb_score'].between(0,10).all():
+
+    if not df['imdb_score'].between(0, 10).all():
         raise ValueError('IMDb scores must be between 0 and 10.')
-    
+
     if df['movie_title'].isnull().any():
         raise ValueError('Movie title has missing values')
-    
+
     if df['title_year'].isnull().any():
         raise ValueError('Title year has missing values.')
-    
+
     logging.info('Data validation passed.')
-    
+
 # Save processed data
+
+
 @log_time
 def save_processed(df, output_path):
     """Save the cleaned data frame to a processed data file."""
@@ -175,6 +198,8 @@ def save_processed(df, output_path):
     df.to_csv(output_path, index=False)
 
 # Load
+
+
 @log_time
 def load(df, db_path, table_name):
     """Load data into SQLite database."""
@@ -183,15 +208,35 @@ def load(df, db_path, table_name):
     df.to_sql(table_name, conn, if_exists='replace', index=False)
     conn.close()
 
+
 def parse_args():
-    parser = argparse.ArgumentParser(description="Run the ETL Pipeline for movie metadata.")
-    parser.add_argument('--raw_data', type=str, default=RAW_DATA_FILE, help='Path to raw CSV file')
-    parser.add_argument('--processed_data', type=str, default=PROCESSED_DATA_FILE, help='Path to processed/cleaned CSV file') 
-    parser.add_argument('--db_path', type=str, default=DB_PATH, help='Path to SQLite database') 
-    parser.add_argument('--table_name', type=str, default=TABLE_NAME, help='Table name in the database') 
+    parser = argparse.ArgumentParser(
+        description="Run the ETL Pipeline for movie metadata.")
+    parser.add_argument(
+        '--raw_data',
+        type=str,
+        default=RAW_DATA_FILE,
+        help='Path to raw CSV file')
+    parser.add_argument(
+        '--processed_data',
+        type=str,
+        default=PROCESSED_DATA_FILE,
+        help='Path to processed/cleaned CSV file')
+    parser.add_argument(
+        '--db_path',
+        type=str,
+        default=DB_PATH,
+        help='Path to SQLite database')
+    parser.add_argument(
+        '--table_name',
+        type=str,
+        default=TABLE_NAME,
+        help='Table name in the database')
     return parser.parse_args()
 
 # Main ETL pipeline
+
+
 def main():
     """Run the ETL pipeline."""
     args = parse_args()
@@ -204,6 +249,7 @@ def main():
         logging.info("ETL Pipeline completed successfully.")
     except Exception as e:
         logging.error(f"ETL Pipeline failed: {e}")
+
 
 if __name__ == '__main__':
     main()
