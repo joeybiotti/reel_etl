@@ -10,6 +10,10 @@ __pycache__/
 # CSVs (optional: if you want to ignore raw data)
 # /data/*.csv
 
+# Reports generated (e.g., profiling reports)
+/reports/
+*.html
+
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints
 
