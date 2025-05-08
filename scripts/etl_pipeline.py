@@ -139,6 +139,34 @@ def transform(df):
     df = normalize_text_fields(df)
     return df
 
+def validate_data(df):
+    """Perform data validation checks on transformed data."""
+    logging.info('Validating data...')
+    
+    # Ensure required columns exist
+    required_columns = ['movie_title', 'title_year', 'director_name', 'budget', 'gross', 'imdb_score']
+    for col in required_columns:
+        if col not in df.columns:
+            raise ValueError(f"Missing column: {col}")
+        
+    # Value checks 
+    if (df['budget'] < 0).any():
+        raise ValueError('Budget contains negative values.')
+
+    if not df['gross'].get(0).all():
+        raise ValueError('Budget contains negative values.')
+    
+    if not df['imdb_score'].between(0,10).all():
+        raise ValueError('IMDb scores must be between 0 and 10.')
+    
+    if df['movie_title'].isnull().any():
+        raise ValueError('Movie title has missing values')
+    
+    if df['title_year'].isnull().any():
+        raise ValueError('Title year has missing values.')
+    
+    logging.info('Data validation passed.')
+    
 # Save processed data
 @log_time
 def save_processed(df, output_path):
@@ -170,6 +198,7 @@ def main():
     try:
         df = extract(args.raw_data)
         df = transform(df)
+        validate_data(df)
         save_processed(df, args.processed_data)
         load(df, args.db_path, args.table_name)
         logging.info("ETL Pipeline completed successfully.")
