@@ -1,2 +1,5 @@
 pandas==1.5.3
 python-json-logger==2.0.4
+matplotlib==3.7.1
+seaborn==0.12.2
+ipykernel==6.29.3
