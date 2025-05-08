@@ -150,9 +150,9 @@ def validate_data(df):
             raise ValueError(f"Missing column: {col}")
         
     # Value checks 
-    if not df['budget'].get(0).all():
+    if (df['budget'] < 0).any():
         raise ValueError('Budget contains negative values.')
-    
+
     if not df['gross'].get(0).all():
         raise ValueError('Budget contains negative values.')
     
