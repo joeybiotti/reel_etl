@@ -5,12 +5,38 @@ import logging
 import argparse
 import time 
 import functools
-
 from logging.handlers import RotatingFileHandler
+from pythonjsonlogger import jsonlogger
 
+# Make /logs directory 
 os.makedirs('logs', exist_ok=True)
 
-# Configure logging
+# Console handler 
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+console_formatter = logging.Formatter(
+    "%(asctime)s [%(levelname)s] %(message)s"
+)
+
+console_handler.setFormatter(console_formatter)
+
+# Create rotating file handler (JSON)
+file_handler = RotatingFileHandler(
+    'logs/etl_pipeline.json',
+    maxBytes=5_000_000,
+    backupCount=5,
+    encoding='utf-8'
+)
+file_handler.setLevel(logging.INFO)
+json_formatter = jsonlogger.JsonFormatter(
+    '%(asctime)s %(levelname)s %(name)s %(message)s',
+)
+file_handler.setFormatter(json_formatter)
+
+logging.getLogger().setLevel(logging.INFO)
+logging.getLogger().addHandler(console_handler)
+logging.getLogger().addHandler(file_handler)
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
