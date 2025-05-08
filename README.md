@@ -14,6 +14,7 @@ It includes robust logging, data validation, exploratory analysis, and an API fo
 - Exploration: Jupyter notebook and ydata-profiling report.
 - API: FastAPI app for querying movies by title and director.
 - SQL Queries: Pre-built analytical queries for insights.
+- Command-Line Scripts: Scripts to run the API server and tests easily.
 
 ---
 
@@ -26,9 +27,11 @@ reel_etl/
 ├── logs/                  # JSON and text log files
 ├── notebooks/             # Exploratory Jupyter notebooks
 ├── reports/               # ydata-profiling HTML report
-├── scripts/               # Utility scripts
+├── scripts/               # Utility scripts and ETL pipeline
 ├── tests/                 # Unit tests
 ├── movies.db              # SQLite database
+├── run_api.sh             # Bash script to launch the API server
+├── run_tests.sh           # Bash script to run tests
 ├── requirements.txt       # Python dependencies
 ├── .gitignore
 ├── README.md
@@ -64,19 +67,50 @@ reel_etl/
    python scripts/etl_pipeline.py
    ```
 
-5. (Optional) Launch the FastAPI server:
-   ```bash
-   uvicorn app.main:app --reload
-   ```
+---
+
+## Running the Application
+
+### Start the API
+
+To launch the FastAPI server:
+
+```bash
+./run_api.sh
+```
+
+The API will be available at [http://127.0.0.1:8000](http://127.0.0.1:8000).
+
+You can explore interactive documentation at:
+
+- Swagger UI: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+- ReDoc: [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
 
 ---
 
-## Quick Start
+### Run the Tests
 
-- Run ETL: Clean and load your movie dataset.
-- Explore: Open `notebooks/explore_movies.ipynb`.
-- Profile Data: View `reports/movie_data_profile.html`.
-- Query API: Visit `http://127.0.0.1:8000/docs` to try the API endpoints.
+To execute all unit tests:
+
+```bash
+./run_tests.sh
+```
+
+Make sure `pytest` is installed:
+
+```bash
+pip install pytest
+```
+
+---
+
+## Quick Start Summary
+
+- **ETL Pipeline**: `python scripts/etl_pipeline.py`
+- **Data Exploration**: Open `notebooks/explore_movies.ipynb`
+- **Data Profiling**: View `reports/movie_data_profile.html`
+- **Launch API**: `./run_api.sh`
+- **Run Tests**: `./run_tests.sh`
 
 ---
 
@@ -88,7 +122,7 @@ reel_etl/
 - SQLite
 - pytest
 - ydata-profiling
-- Seaborn and Matplotlib (for visuals)
+- Seaborn and Matplotlib
 
 ---
 
