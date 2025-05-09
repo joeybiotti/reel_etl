@@ -1,0 +1,23 @@
+[paths]
+raw_data_file = 'data/raw/movie_metadata.csv'
+processed_data_file = 'data/processed/movie_meta_data_cleaned.csv'
+db_path = 'movies.db'
+table_name = 'movies'
+
+[validation]
+critcal_columns = ['movie_title', 'title_year', 'director_name']
+
+[transformation]
+text_fields = ['genres', 'language', 'country']
+
+[defaults]
+gross = 0
+budget = 0
+content_rating = 'Not Rated'
+
+[logging]
+log_dir = 'logs'
+rotating_log_file = 'logs/etl_pipline.log'
+json_log_file = 'logs/etl_pipleine.json'
+max_log_size = 5000000                     # 5 MB
+backup_count = 5
