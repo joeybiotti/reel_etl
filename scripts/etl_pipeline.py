@@ -7,6 +7,13 @@ import time
 import functools
 from logging.handlers import RotatingFileHandler
 from pythonjsonlogger import jsonlogger
+import tomli
+
+def load_config(path='config.toml'):
+    with open(path, 'rb') as f:
+        return tomli.load(f)
+    
+config = load_config()
 
 # Make /logs directory
 os.makedirs('logs', exist_ok=True)
@@ -215,22 +222,22 @@ def parse_args():
     parser.add_argument(
         '--raw_data',
         type=str,
-        default=RAW_DATA_FILE,
+        default=config['paths']['raw_data_file'],
         help='Path to raw CSV file')
     parser.add_argument(
         '--processed_data',
         type=str,
-        default=PROCESSED_DATA_FILE,
+        default=config['paths']['processed_data_file'],
         help='Path to processed/cleaned CSV file')
     parser.add_argument(
         '--db_path',
         type=str,
-        default=DB_PATH,
+        default=config['paths']['db_path'],
         help='Path to SQLite database')
     parser.add_argument(
         '--table_name',
         type=str,
-        default=TABLE_NAME,
+        default=config['paths']['table_name'],
         help='Table name in the database')
     return parser.parse_args()
 
