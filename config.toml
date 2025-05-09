@@ -1,6 +1,6 @@
 [paths]
 raw_data_file = 'data/raw/movie_metadata.csv'
-processed_data_file = 'data/processed/movie_meta_data_cleaned.csv'
+processed_data_file = 'data/processed/movie_metadata_cleaned.csv'
 db_path = 'movies.db'
 table_name = 'movies'
 
