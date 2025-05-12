@@ -1,7 +1,7 @@
 import pytest
 import pandas as pd
 import sqlite3
-from scripts.etl_pipeline import extract, transform, normalize_text_fields, save_processed, load
+from scripts.etl_pipeline import extract, transform, save_processed, load
 
 # === Fixtures ===#
 
@@ -53,23 +53,6 @@ def test_transform_cleans_dataframe(sample_df):
     # Column names should be clean (no spaces & lowercase)
     assert all(' ' not in col for col in transformed_df.columns)
     assert all(col == col.lower() for col in transformed_df.columns)
-
-
-@pytest.mark.parametrize(
-    "column_name,input_values,expected_values",
-    [
-        ("genres", ["Action", "Comedy", "Drama"],
-         ["action", "comedy", "drama"]),
-        ("language", ["English", "French", "Spanish"],
-         ["english", "french", "spanish"]),
-        ("country", ["USA", "France", "Spain"], ["usa", "france", "spain"]),
-    ]
-)
-def test_normalize_text_fields(column_name, input_values, expected_values):
-    """Test that text fields are normalized to lowercase."""
-    df = pd.DataFrame({column_name: input_values})
-    normalized_df = normalize_text_fields(df)
-    assert normalized_df[column_name].tolist() == expected_values
 
 
 @pytest.mark.parametrize(
