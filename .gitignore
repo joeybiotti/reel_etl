@@ -2,6 +2,8 @@
 __pycache__/
 *.py[cod]
 *$py.class
+.pytest_cache
+
 
 # SQLite database files
 *.db
@@ -25,6 +27,7 @@ venv/
 .env/
 env/
 ENV/
+.venv/
 
 # OS system files
 .DS_Store
@@ -36,3 +39,4 @@ Thumbs.db
 # Ignore log files
 logs/
 *.log
+
