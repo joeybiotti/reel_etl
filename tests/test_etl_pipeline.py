@@ -23,6 +23,9 @@ def sample_df():
     }
     return pd.DataFrame(data)
 
+
+
+
 # === Tests ===#
 
 
@@ -54,6 +57,13 @@ def test_transform_cleans_dataframe(sample_df):
     assert all(' ' not in col for col in transformed_df.columns)
     assert all(col == col.lower() for col in transformed_df.columns)
 
+
+def test_transform_handles_missing_or_extra_column(sample_df):
+    print(sample_df.columns)
+    sample_df.drop(columns=['genres','country'], inplace=True)
+    transformed_df = transform(sample_df)
+    assert 'budget' in transformed_df.columns
+    assert 'genres' not in transformed_df.columns
 
 @pytest.mark.parametrize(
     "output_filename",
