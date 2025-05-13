@@ -84,6 +84,23 @@ def test_transform_handles_extreme_values(sample_df):
     assert transformed_df['budget'].isnull().sum() == 0
     assert transformed_df['imdb_score'].min () >= 0
 
+@pytest.mark.parametrize(
+    'title',
+    [
+        "Léon: The Professional",
+        "千と千尋の神隠し",
+        "El laberinto del fauno",
+        "Паразиты",
+        "🚀 Starship"
+    ]
+)
+def test_transform_handles_unicode_titles(sample_df, title):
+    sample_df.loc[0, 'movie_title'] = title
+    transform_df = transform(sample_df)
+    
+    assert transform_df['movie_title'].iloc[0] == title
+    assert isinstance(transform_df['movie_title'].iloc[0],str)
+
 
 @pytest.mark.parametrize(
     "output_filename",
