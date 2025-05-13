@@ -118,9 +118,27 @@ def load(df, db_path, table_name):
     logger.info("Loading cleaned data into database...")
     logger.debug(
         f"Loading data into database: {db_path} , table name: {table_name}")
-    conn = sqlite3.connect(db_path)
-    df.to_sql(table_name, conn, if_exists='replace', index=False)
-    conn.close()
+
+    try:
+        start_time = time.time()
+
+        with sqlite3.connect(db_path) as conn:
+            conn.execute('PRAGMA optimize;')
+            existing_ids = pd.read_sql(f'SELECT DISTINCT id FROM {table_name}', conn)[
+                'id'].tolist()
+            df = df[~df['id'].isin(existing_ids)]
+
+            if not df.empty:
+                df.to_sql(table_name, conn, if_exists='append',
+                          index=False, method='multi', chunksize=5000)
+                logger.info(f'Inserted {len(df)} new records.')
+            else:
+                logger.info('No new records to insert.')
+
+        logger.info(
+            f'Bulk insert completed in {time.time()-start_time:.2f} seconds.')
+    except Exception as e:
+        logger.error(f'Database insert failed: {e}', exc_info=True)
 
 
 def parse_args():
