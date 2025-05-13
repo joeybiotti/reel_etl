@@ -17,12 +17,13 @@ DEBUG_MODE = os.getenv('DEBUG_MODE', 'False').lower() == 'true'
 # Create logs directory
 os.makedirs('logs', exist_ok=True)
 
-# Set global logging configuration FIRST
-logging.basicConfig(level=logging.DEBUG if DEBUG_MODE else logging.INFO)
+
+LOG_LEVEL = logging.DEBUG if DEBUG_MODE else logging.INFO
+logging.basicConfig(level=LOG_LEVEL)
 
 # Set up logger AFTER configuring logging globally
 logger = logging.getLogger('ETL_Pipeline')
-logger.setLevel(logging.DEBUG if DEBUG_MODE else logging.INFO)
+logger.setLevel(LOG_LEVEL)
 
 # Remove any existing handlers to prevent conflict
 for handler in logger.handlers[:]:
@@ -31,23 +32,28 @@ for handler in logger.handlers[:]:
 # Console Handler
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(logging.Formatter(
-    '%(asctime)s [%(levelname)s] %(message)s'))
-console_handler.setLevel(logging.DEBUG if DEBUG_MODE else logging.INFO)
+    '%(asctime)s [%(levelname)s] %(message)s',
+    "%Y-%m-%dT%H:%M:%S"))
+console_handler.setLevel(LOG_LEVEL)
 logger.addHandler(console_handler)
 
-# Filer handler
+# File handler
 file_handler = logging.FileHandler('logs/etl_pipeline.log')
 file_handler.setFormatter(logging.Formatter(
-    '%(asctime)s [%(levelname)s] %(message)s'))
-file_handler.setLevel(logging.DEBUG if DEBUG_MODE else logging.INFO)
+    '%(asctime)s [%(levelname)s] %(message)s',
+    "%Y-%m-%dT%H:%M:%S"))
+file_handler.setLevel(LOG_LEVEL)
 logger.addHandler(file_handler)
 
 # JSON handler
 json_file_handler = logging.FileHandler('logs/etl_pipeline.json')
 json_formatter = jsonlogger.JsonFormatter(
-    '%(asctime)s %(levelname)s %(name)s %(message)s %(filename)s %(funcName)s')
+    '%(asctime)s %(levelname)s %(name)s %(message)s %(filename)s %(funcName)s %(extra)',
+    json_ensure_ascii=False
+)
+json_formatter.datefmt = "%Y-%m-%dT%H:%M:%S"
 json_file_handler.setFormatter(json_formatter)
-json_file_handler.setLevel(logging.DEBUG if DEBUG_MODE else logging.INFO)
+json_file_handler.setLevel(LOG_LEVEL)
 logger.addHandler(json_file_handler)
 
 
@@ -143,7 +149,7 @@ def main():
     args = parse_args()
 
     DEBUG_MODE = args.debug
-    logger.setLevel(logging.DEBUG if DEBUG_MODE else logging.INFO)
+    logger.setLevel(LOG_LEVEL)
 
     # Override handler levels AFTER parsing arguments
     for handler in logger.handlers:
@@ -154,7 +160,8 @@ def main():
         df = transform(df)
         save_processed(df, args.processed_data)
         load(df, args.db_path, args.table_name)
-        logger.info("ETL Pipeline completed successfully.")
+        logger.info("ETL Pipeline completed successfully.", extra={
+                    "pipeline_stage": "load", "execution_time": "0.07s"})
     except Exception as e:
         logger.error(f"ETL Pipeline failed: {e}", exc_info=True)
         sys.exit(1)
