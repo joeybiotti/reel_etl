@@ -65,6 +65,26 @@ def test_transform_handles_missing_or_extra_column(sample_df):
     assert 'budget' in transformed_df.columns
     assert 'genres' not in transformed_df.columns
 
+
+def test_transform_handles_extreme_values(sample_df):
+    sample_df.loc[0, 'budget'] = 0
+    sample_df.loc[1, 'budget'] = None
+    sample_df.loc[2, 'budget'] = 10000
+
+    sample_df.loc[0, 'imdb_score'] = 7.5
+    sample_df.loc[1, 'imdb_score'] = None
+    sample_df.loc[2, 'imdb_score'] = -3
+    
+
+    transformed_df = transform(sample_df)
+    
+    print(transformed_df["imdb_score"])
+    
+    
+    assert transformed_df['budget'].isnull().sum() == 0
+    assert transformed_df['imdb_score'].min () >= 0
+
+
 @pytest.mark.parametrize(
     "output_filename",
     [
