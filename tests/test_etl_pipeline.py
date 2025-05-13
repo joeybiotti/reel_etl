@@ -24,8 +24,6 @@ def sample_df():
     return pd.DataFrame(data)
 
 
-
-
 # === Tests ===#
 
 
@@ -60,7 +58,7 @@ def test_transform_cleans_dataframe(sample_df):
 
 def test_transform_handles_missing_or_extra_column(sample_df):
     print(sample_df.columns)
-    sample_df.drop(columns=['genres','country'], inplace=True)
+    sample_df.drop(columns=['genres', 'country'], inplace=True)
     transformed_df = transform(sample_df)
     assert 'budget' in transformed_df.columns
     assert 'genres' not in transformed_df.columns
@@ -74,15 +72,14 @@ def test_transform_handles_extreme_values(sample_df):
     sample_df.loc[0, 'imdb_score'] = 7.5
     sample_df.loc[1, 'imdb_score'] = None
     sample_df.loc[2, 'imdb_score'] = -3
-    
 
     transformed_df = transform(sample_df)
-    
+
     print(transformed_df["imdb_score"])
-    
-    
+
     assert transformed_df['budget'].isnull().sum() == 0
-    assert transformed_df['imdb_score'].min () >= 0
+    assert transformed_df['imdb_score'].min() >= 0
+
 
 @pytest.mark.parametrize(
     'title',
@@ -97,9 +94,9 @@ def test_transform_handles_extreme_values(sample_df):
 def test_transform_handles_unicode_titles(sample_df, title):
     sample_df.loc[0, 'movie_title'] = title
     transform_df = transform(sample_df)
-    
+
     assert transform_df['movie_title'].iloc[0] == title
-    assert isinstance(transform_df['movie_title'].iloc[0],str)
+    assert isinstance(transform_df['movie_title'].iloc[0], str)
 
 
 @pytest.mark.parametrize(
