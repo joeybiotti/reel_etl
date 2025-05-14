@@ -156,8 +156,20 @@ def parse_args():
                         help=f'Table name in the database (Default: {config["paths"]["table_name"]})')
     parser.add_argument('--debug', action='store_true',
                         help='Enable debug mode')
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--extract-only', action='store_true',
+                       help='Run only the extract phase')
+    group.add_argument('--transform-only', action='store_true',
+                       help='Run only the transform phase')
+    group.add_argument('--load-only', action='store_true',
+                       help='Run only the load phase')
 
     args = parser.parse_args()
+
+    if not os.path.exists(config['paths']['raw_data_file']):
+        parser.error(f"Invalid file path: {config['paths']['raw_data_file']}")
+    if not os.path.exists(config['paths']['processed_data_file']):
+        parser.error(f"Invalid file path: {config['paths']['processed_data_file']}")
 
     return args
 
@@ -166,20 +178,37 @@ def main():
     """Run the ETL pipeline."""
     args = parse_args()
 
-    DEBUG_MODE = args.debug
-    logger.setLevel(LOG_LEVEL)
+    if args.debug:
+        logger.setLevel(logging.DEBUG)
+        logger.info('Debug mode enabled')
 
-    # Override handler levels AFTER parsing arguments
     for handler in logger.handlers:
-        handler.setLevel(logging.DEBUG if DEBUG_MODE else logging.INFO)
+        handler.setLevel(logging.DEBUG if args.debug else logging.INFO)
 
     try:
+        if args.extract_only:
+            df = extract(args.raw_data)
+            return
+
         df = extract(args.raw_data)
+
+        if args.transform_only:
+            df = transform(df)
+            save_processed(df, args.processed_data)
+            return
+
         df = transform(df)
         save_processed(df, args.processed_data)
+
+        if args.load_only:
+            load(df, args.db_path, args.table_name)
+            return
+
         load(df, args.db_path, args.table_name)
+
         logger.info("ETL Pipeline completed successfully.", extra={
                     "pipeline_stage": "load", "execution_time": "0.07s"})
+
     except Exception as e:
         logger.error(f"ETL Pipeline failed: {e}", exc_info=True)
         sys.exit(1)
