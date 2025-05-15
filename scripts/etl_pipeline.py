@@ -86,6 +86,17 @@ def log_memory_usage():
     logger.info(f'Memory usage: {memory_percent:.2f}%')
 
 
+def validate_file(path, description):
+    '''Check if file exists and potential reason for failure.'''
+    if not os.path.exists(path):
+        reason = 'File does not exist'
+        if not os.path.abspath(path).startswith(os.getcwd()):
+            reason = "Path might be incorrect or outside expected directories"
+        elif not os.access(path, os.R_OK):
+            reason = "Insufficient permissions to read the file"
+        
+        raise FileNotFoundError(f"Missing {description}: {path}. Reason: {reason}")
+
 @log_time
 def extract(file_path):
     """Extract data from CSV."""
@@ -172,8 +183,13 @@ def load(df, db_path, table_name):
 
 def parse_args():
     """Parse command line arguments."""
+    
+    validate_file(config['paths']['raw_data_file'], "Raw data CSV")
+    validate_file(config['paths']['processed_data_file'], "Processed data CSV")
+
     parser = argparse.ArgumentParser(
         description="Run the ETL Pipeline for movie metadata.")
+  
     parser.add_argument('--raw_data', type=str, default=config['paths']['raw_data_file'],
                         help=f'Path to raw CSV file (Default: {config["paths"]["raw_data_file"]})')
     parser.add_argument('--processed_data', type=str, default=config['paths']['processed_data_file'],
