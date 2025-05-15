@@ -136,14 +136,18 @@ def load(df, db_path, table_name):
             logger.debug(
                 f"Keys remaining after deduplication: {df['unique_key'].tolist()}")
             if not df.empty:
+                
+              
                 query = f'''
                 INSERT OR IGNORE INTO {table_name} (movie_title, title_year, director_name, unique_key) 
                 VALUES (?, ?, ?, ?)
                 '''
+                
+                insert_start = time.time()
                 conn.executemany(query, df[[
-                                 'movie_title', 'title_year', 'director_name', 'unique_key']].values.tolist())
-
-                logger.info(f'Inserted {len(df)} new records.')
+                                  'movie_title', 'title_year', 'director_name', 'unique_key']].values.tolist())
+                insert_duration = time.time() - insert_start
+                logger.info(f'Inserted {len(df)} new records. Insert duration time: {insert_duration:.2f} seconds')
             else:
                 logger.info('No new records to insert.')
 
