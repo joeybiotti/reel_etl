@@ -9,6 +9,7 @@ from logging.handlers import RotatingFileHandler
 from pythonjsonlogger import jsonlogger
 import tomli
 import sys
+import psutil
 
 
 # Debug mode configuration
@@ -79,10 +80,17 @@ def log_time(func):
     return wrapper
 
 
+def log_memory_usage():
+    '''Log current memory usage'''
+    memory_percent = psutil.virtual_memory().percent
+    logger.info(f'Memory usage: {memory_percent:.2f}%')
+
+
 @log_time
 def extract(file_path):
     """Extract data from CSV."""
     logger.info("Extracting data...")
+    log_memory_usage()
     logger.debug(
         f"Extracting {file_path}, file exists: {os.path.exists(file_path)}")
     if not os.path.exists(file_path):
@@ -95,6 +103,7 @@ def extract(file_path):
 def transform(df):
     """Apply all data cleaning steps."""
     logger.info("Transforming data...")
+    log_memory_usage()
     df = df.copy()
     df.columns = [col.strip().lower().replace(' ', '_') for col in df.columns]
     df = df.dropna(subset=['movie_title', 'title_year', 'director_name'])
@@ -108,6 +117,7 @@ def transform(df):
 def save_processed(df, output_path):
     """Save the cleaned data frame."""
     logger.info("Saving cleaned data...")
+    log_memory_usage()
     logger.debug(f"Saving clearned data to {output_path}")
     df.to_csv(output_path, index=False)
 
@@ -145,7 +155,7 @@ def load(df, db_path, table_name):
                 insert_start = perf_counter()
                 conn.executemany(query, df[[
                     'movie_title', 'title_year', 'director_name', 'unique_key']].values.tolist())
-                insert_duration = perf_counter()() - insert_start
+                insert_duration = perf_counter() - insert_start
                 logger.info(
                     f'Inserted {len(df)} new records. Insert duration time: {insert_duration:.2f} seconds')
             else:
