@@ -31,7 +31,8 @@ CREATE TABLE
         actor_2_facebook_likes INTEGER,
         imdb_score REAL,
         aspect_ratio REAL,
-        movie_facebook_likes INTEGER
+        movie_facebook_likes INTEGER,
+        unique_key text UNIQUE
     )
 ;
 
@@ -42,4 +43,7 @@ CREATE INDEX idx_country ON movies (country)
 ;
 
 CREATE INDEX idx_title_year ON movies (title_year)
+;
+
+CREATE UNIQUE INDEX unique_idx ON movies (unique_key)
 ;

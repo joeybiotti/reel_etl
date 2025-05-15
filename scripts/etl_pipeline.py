@@ -124,16 +124,35 @@ def load(df, db_path, table_name):
 
         with sqlite3.connect(db_path) as conn:
             conn.execute('PRAGMA optimize;')
-            existing_ids = pd.read_sql(f'SELECT DISTINCT id FROM {table_name}', conn)[
-                'id'].tolist()
-            df = df[~df['id'].isin(existing_ids)]
+            df['unique_key'] = df['movie_title'].astype(
+                str) + '_' + df['title_year'].astype(str) + '_' + df['director_name'].astype(str)
 
+            existing_keys = pd.read_sql(f'SELECT DISTINCT unique_key FROM {table_name}', conn)[
+                'unique_key'].tolist()
+            logger.debug(f"Existing keys in DB: {existing_keys}")
+            logger.debug(
+                f"Keys in DF before deduplication: {df['unique_key'].tolist()}")
+            df = df[~df['unique_key'].isin(existing_keys)]  # Remove duplicates
+            logger.debug(
+                f"Keys remaining after deduplication: {df['unique_key'].tolist()}")
             if not df.empty:
-                df.to_sql(table_name, conn, if_exists='append',
-                          index=False, method='multi', chunksize=5000)
-                logger.info(f'Inserted {len(df)} new records.')
+                
+              
+                query = f'''
+                INSERT OR IGNORE INTO {table_name} (movie_title, title_year, director_name, unique_key) 
+                VALUES (?, ?, ?, ?)
+                '''
+                
+                insert_start = time.time()
+                conn.executemany(query, df[[
+                                  'movie_title', 'title_year', 'director_name', 'unique_key']].values.tolist())
+                insert_duration = time.time() - insert_start
+                logger.info(f'Inserted {len(df)} new records. Insert duration time: {insert_duration:.2f} seconds')
             else:
                 logger.info('No new records to insert.')
+
+        logger.debug(
+            f"Unique keys about to be inserted: {df['unique_key'].tolist()}")
 
         logger.info(
             f'Bulk insert completed in {time.time()-start_time:.2f} seconds.')
@@ -156,8 +175,22 @@ def parse_args():
                         help=f'Table name in the database (Default: {config["paths"]["table_name"]})')
     parser.add_argument('--debug', action='store_true',
                         help='Enable debug mode')
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--extract-only', action='store_true',
+                       help='Run only the extract phase')
+    group.add_argument('--transform-only', action='store_true',
+                       help='Run only the transform phase')
+    group.add_argument('--load-only', action='store_true',
+                       help='Run only the load phase')
 
     args = parser.parse_args()
+
+    if not os.path.exists(config['paths']['raw_data_file']):
+        raise FileNotFoundError(
+            f"Invalid file path: {config['paths']['raw_data_file']}")
+    if not os.path.exists(config['paths']['processed_data_file']):
+        raise FileNotFoundError(
+            f"Invalid file path: {config['paths']['processed_data_file']}")
 
     return args
 
@@ -166,20 +199,37 @@ def main():
     """Run the ETL pipeline."""
     args = parse_args()
 
-    DEBUG_MODE = args.debug
-    logger.setLevel(LOG_LEVEL)
+    if args.debug:
+        logger.setLevel(logging.DEBUG)
+        logger.info('Debug mode enabled')
 
-    # Override handler levels AFTER parsing arguments
     for handler in logger.handlers:
-        handler.setLevel(logging.DEBUG if DEBUG_MODE else logging.INFO)
+        handler.setLevel(logging.DEBUG if args.debug else logging.INFO)
 
     try:
+        if args.extract_only:
+            df = extract(args.raw_data)
+            return
+
         df = extract(args.raw_data)
+
+        if args.transform_only:
+            df = transform(df)
+            save_processed(df, args.processed_data)
+            return
+
         df = transform(df)
         save_processed(df, args.processed_data)
+
+        if args.load_only:
+            load(df, args.db_path, args.table_name)
+            return
+
         load(df, args.db_path, args.table_name)
+
         logger.info("ETL Pipeline completed successfully.", extra={
                     "pipeline_stage": "load", "execution_time": "0.07s"})
+
     except Exception as e:
         logger.error(f"ETL Pipeline failed: {e}", exc_info=True)
         sys.exit(1)
