@@ -3,7 +3,7 @@ import sqlite3
 import os
 import logging
 import argparse
-import time
+from time import perf_counter
 import functools
 from logging.handlers import RotatingFileHandler
 from pythonjsonlogger import jsonlogger
@@ -69,10 +69,10 @@ def log_time(func):
     """Decorator to log the execution time of a function."""
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        start_time = time.time()
+        start_time = perf_counter()
         logger.info(f'Running function: {func.__name__}')
         result = func(*args, **kwargs)
-        elapsed_time = time.time() - start_time
+        elapsed_time = perf_counter() - start_time
         logger.info(
             f"{func.__name__} completed in {elapsed_time:.2f} seconds.")
         return result
@@ -120,7 +120,7 @@ def load(df, db_path, table_name):
         f"Loading data into database: {db_path} , table name: {table_name}")
 
     try:
-        start_time = time.time()
+        start_time = perf_counter()
 
         with sqlite3.connect(db_path) as conn:
             conn.execute('PRAGMA optimize;')
@@ -136,18 +136,18 @@ def load(df, db_path, table_name):
             logger.debug(
                 f"Keys remaining after deduplication: {df['unique_key'].tolist()}")
             if not df.empty:
-                
-              
+
                 query = f'''
                 INSERT OR IGNORE INTO {table_name} (movie_title, title_year, director_name, unique_key) 
                 VALUES (?, ?, ?, ?)
                 '''
-                
-                insert_start = time.time()
+
+                insert_start = perf_counter()
                 conn.executemany(query, df[[
-                                  'movie_title', 'title_year', 'director_name', 'unique_key']].values.tolist())
-                insert_duration = time.time() - insert_start
-                logger.info(f'Inserted {len(df)} new records. Insert duration time: {insert_duration:.2f} seconds')
+                    'movie_title', 'title_year', 'director_name', 'unique_key']].values.tolist())
+                insert_duration = perf_counter()() - insert_start
+                logger.info(
+                    f'Inserted {len(df)} new records. Insert duration time: {insert_duration:.2f} seconds')
             else:
                 logger.info('No new records to insert.')
 
@@ -155,7 +155,7 @@ def load(df, db_path, table_name):
             f"Unique keys about to be inserted: {df['unique_key'].tolist()}")
 
         logger.info(
-            f'Bulk insert completed in {time.time()-start_time:.2f} seconds.')
+            f'Bulk insert completed in {perf_counter()-start_time:.2f} seconds.')
     except Exception as e:
         logger.error(f'Database insert failed: {e}', exc_info=True)
 
