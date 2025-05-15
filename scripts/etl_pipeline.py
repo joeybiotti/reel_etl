@@ -124,16 +124,31 @@ def load(df, db_path, table_name):
 
         with sqlite3.connect(db_path) as conn:
             conn.execute('PRAGMA optimize;')
-            existing_ids = pd.read_sql(f'SELECT DISTINCT id FROM {table_name}', conn)[
-                'id'].tolist()
-            df = df[~df['id'].isin(existing_ids)]
+            df['unique_key'] = df['movie_title'].astype(
+                str) + '_' + df['title_year'].astype(str) + '_' + df['director_name'].astype(str)
 
+            existing_keys = pd.read_sql(f'SELECT DISTINCT unique_key FROM {table_name}', conn)[
+                'unique_key'].tolist()
+            logger.debug(f"Existing keys in DB: {existing_keys}")
+            logger.debug(
+                f"Keys in DF before deduplication: {df['unique_key'].tolist()}")
+            df = df[~df['unique_key'].isin(existing_keys)]  # Remove duplicates
+            logger.debug(
+                f"Keys remaining after deduplication: {df['unique_key'].tolist()}")
             if not df.empty:
-                df.to_sql(table_name, conn, if_exists='append',
-                          index=False, method='multi', chunksize=5000)
+                query = f'''
+                INSERT OR IGNORE INTO {table_name} (movie_title, title_year, director_name, unique_key) 
+                VALUES (?, ?, ?, ?)
+                '''
+                conn.executemany(query, df[[
+                                 'movie_title', 'title_year', 'director_name', 'unique_key']].values.tolist())
+
                 logger.info(f'Inserted {len(df)} new records.')
             else:
                 logger.info('No new records to insert.')
+
+        logger.debug(
+            f"Unique keys about to be inserted: {df['unique_key'].tolist()}")
 
         logger.info(
             f'Bulk insert completed in {time.time()-start_time:.2f} seconds.')
@@ -167,9 +182,11 @@ def parse_args():
     args = parser.parse_args()
 
     if not os.path.exists(config['paths']['raw_data_file']):
-        parser.error(f"Invalid file path: {config['paths']['raw_data_file']}")
+        raise FileNotFoundError(
+            f"Invalid file path: {config['paths']['raw_data_file']}")
     if not os.path.exists(config['paths']['processed_data_file']):
-        parser.error(f"Invalid file path: {config['paths']['processed_data_file']}")
+        raise FileNotFoundError(
+            f"Invalid file path: {config['paths']['processed_data_file']}")
 
     return args
 
