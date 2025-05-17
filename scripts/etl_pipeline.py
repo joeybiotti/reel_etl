@@ -11,6 +11,9 @@ import tomli
 import sys
 import psutil
 from tqdm import tqdm
+import typer
+
+app = typer.Typer()
 
 # Debug mode configuration
 DEBUG_MODE = os.getenv('DEBUG_MODE', 'False').lower() == 'true'
@@ -94,8 +97,10 @@ def validate_file(path, description):
             reason = "Path might be incorrect or outside expected directories"
         elif not os.access(path, os.R_OK):
             reason = "Insufficient permissions to read the file"
-        
-        raise FileNotFoundError(f"Missing {description}: {path}. Reason: {reason}")
+
+        raise FileNotFoundError(
+            f"Missing {description}: {path}. Reason: {reason}")
+
 
 @log_time
 def extract(file_path):
@@ -104,13 +109,14 @@ def extract(file_path):
     log_memory_usage()
     logger.debug(
         f"Extracting {file_path}, file exists: {os.path.exists(file_path)}")
-    
+
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"File not found: {file_path}")
     chunk_size = 10_000
     df_chunks = pd.read_csv(file_path, chunksize=chunk_size)
 
-    df = pd.concat(tqdm(df_chunks, desc='Reading CSV chunks'), ignore_index=True)
+    df = pd.concat(tqdm(df_chunks, desc='Reading CSV chunks'),
+                   ignore_index=True)
     return df
 
 
@@ -119,7 +125,7 @@ def transform(df):
     """Apply all data cleaning steps."""
     logger.info("Transforming data...")
     log_memory_usage()
-    
+
     tqdm.pandas(desc='Applying cleaning steps')
     df = df.copy()
     df.columns = [col.strip().lower().replace(' ', '_') for col in df.columns]
@@ -148,12 +154,14 @@ def load(df, db_path, table_name):
     with sqlite3.connect(db_path) as conn:
         start_time = perf_counter()
         conn.execute('PRAGMA optimize;')
-        
-        df['unique_key'] = df['movie_title'].astype(str) + '_' + df['title_year'].astype(str) + '_' + df['director_name'].astype(str)
-        
-        existing_keys = pd.read_sql(f'SELECT DISTINCT unique_key FROM {table_name}', conn)['unique_key'].tolist()
+
+        df['unique_key'] = df['movie_title'].astype(
+            str) + '_' + df['title_year'].astype(str) + '_' + df['director_name'].astype(str)
+
+        existing_keys = pd.read_sql(f'SELECT DISTINCT unique_key FROM {table_name}', conn)[
+            'unique_key'].tolist()
         df = df[~df['unique_key'].isin(existing_keys)]  # Remove duplicates
-        
+
         if not df.empty:
             query = f'''
             INSERT OR IGNORE INTO {table_name} (movie_title, title_year, director_name, unique_key) 
@@ -162,101 +170,61 @@ def load(df, db_path, table_name):
         for row in tqdm(df.itertuples(index=False, name=None), desc="Inserting rows"):
             conn.execute(query, tuple(row))
 
-            
             logger.info(f'Inserted {len(df)} new records.')
         else:
             logger.info('No new records to insert.')
-
 
         logger.debug(
             f"Unique keys about to be inserted: {df['unique_key'].tolist()}")
 
         logger.info(
             f'Bulk insert completed in {perf_counter()-start_time:.2f} seconds.')
-    
-    # except Exception as e:
-    #     logger.error(f'Database insert failed: {e}', exc_info=True)
 
 
-def parse_args():
-    """Parse command line arguments."""
-    
-    validate_file(config['paths']['raw_data_file'], "Raw data CSV")
-    validate_file(config['paths']['processed_data_file'], "Processed data CSV")
-
-    parser = argparse.ArgumentParser(
-        description="Run the ETL Pipeline for movie metadata.")
-  
-    parser.add_argument('--raw_data', type=str, default=config['paths']['raw_data_file'],
-                        help=f'Path to raw CSV file (Default: {config["paths"]["raw_data_file"]})')
-    parser.add_argument('--processed_data', type=str, default=config['paths']['processed_data_file'],
-                        help=f'Path to processed/cleaned CSV file (Default: {config["paths"]["processed_data_file"]})')
-    parser.add_argument('--db_path', type=str, default=config['paths'].get(
-        'db_path', 'movies.db'), help='Path to SQLite database')
-
-    parser.add_argument('--table_name', type=str, default=config['paths']['table_name'],
-                        help=f'Table name in the database (Default: {config["paths"]["table_name"]})')
-    parser.add_argument('--debug', action='store_true',
-                        help='Enable debug mode')
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument('--extract-only', action='store_true',
-                       help='Run only the extract phase')
-    group.add_argument('--transform-only', action='store_true',
-                       help='Run only the transform phase')
-    group.add_argument('--load-only', action='store_true',
-                       help='Run only the load phase')
-
-    args = parser.parse_args()
-
-    if not os.path.exists(config['paths']['raw_data_file']):
-        raise FileNotFoundError(
-            f"Invalid file path: {config['paths']['raw_data_file']}")
-    if not os.path.exists(config['paths']['processed_data_file']):
-        raise FileNotFoundError(
-            f"Invalid file path: {config['paths']['processed_data_file']}")
-
-    return args
-
-
-def main():
-    """Run the ETL pipeline."""
-    args = parse_args()
-
-    if args.debug:
+@app.command()
+def run_etl(
+    raw_data: str = typer.Option(
+        config['paths']['raw_data_file'], help="Path to raw CSV"),
+    processed_data: str = typer.Option(
+        config['paths']['processed_data_file'], help='Path to the cleaned CSV'),
+    db_path: str = typer.Option(config['paths'].get(
+        'db_path', 'movies.db'), help='Path to SQLite database'),
+    table_name: str = typer.Option(
+        config['paths']['table_name'], help='Target database table'),
+    debug: bool = typer.Option(False, '--debug', help='Enable debug mode'),
+    extract_only: bool = typer.Option(
+        False, '--extract-only', help='Enable extract only'),
+    transform_only: bool = typer.Option(
+        False, '--transform_only', help='Enable transform only'),
+    load_only: bool = typer.Option(
+        False, '--load-only', help='Enable load only')
+):
+    '''Run the ETL Pipeline with CLI Control'''
+    if debug:
         logger.setLevel(logging.DEBUG)
-        logger.info('Debug mode enabled')
+        logger.info('Debub mode enabled')
 
-    for handler in logger.handlers:
-        handler.setLevel(logging.DEBUG if args.debug else logging.INFO)
+    if extract_only:
+        df = extract(raw_data)
+        return
 
-    try:
-        if args.extract_only:
-            df = extract(args.raw_data)
-            return
+    df = extract(raw_data)
 
-        df = extract(args.raw_data)
-
-        if args.transform_only:
-            df = transform(df)
-            save_processed(df, args.processed_data)
-            return
-
+    if transform_only:
         df = transform(df)
-        save_processed(df, args.processed_data)
+        save_processed(df, processed_data)
+        return
 
-        if args.load_only:
-            load(df, args.db_path, args.table_name)
-            return
+    df = transform(df)
+    save_processed(df, processed_data)
 
-        load(df, args.db_path, args.table_name)
+    if load_only:
+        load(df, db_path, table_name)
+        return
 
-        logger.info("ETL Pipeline completed successfully.", extra={
-                    "pipeline_stage": "load", "execution_time": "0.07s"})
-
-    except Exception as e:
-        logger.error(f"ETL Pipeline failed: {e}", exc_info=True)
-        sys.exit(1)
+    load(df, db_path, table_name)
+    logger.info('ETL Pipeline completed successfully!')
 
 
 if __name__ == '__main__':
-    main()
+    app()
