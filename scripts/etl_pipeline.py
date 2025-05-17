@@ -10,7 +10,7 @@ from pythonjsonlogger import jsonlogger
 import tomli
 import sys
 import psutil
-
+from tqdm import tqdm
 
 # Debug mode configuration
 DEBUG_MODE = os.getenv('DEBUG_MODE', 'False').lower() == 'true'
@@ -104,9 +104,13 @@ def extract(file_path):
     log_memory_usage()
     logger.debug(
         f"Extracting {file_path}, file exists: {os.path.exists(file_path)}")
+    
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"File not found: {file_path}")
-    df = pd.read_csv(file_path)
+    chunk_size = 10_000
+    df_chunks = pd.read_csv(file_path, chunksize=chunk_size)
+
+    df = pd.concat(tqdm(df_chunks, desc='Reading CSV chunks'), ignore_index=True)
     return df
 
 
@@ -115,6 +119,8 @@ def transform(df):
     """Apply all data cleaning steps."""
     logger.info("Transforming data...")
     log_memory_usage()
+    
+    tqdm.pandas(desc='Applying cleaning steps')
     df = df.copy()
     df.columns = [col.strip().lower().replace(' ', '_') for col in df.columns]
     df = df.dropna(subset=['movie_title', 'title_year', 'director_name'])
@@ -135,50 +141,41 @@ def save_processed(df, output_path):
 
 @log_time
 def load(df, db_path, table_name):
-    """Load data into SQLite database."""
+    """Load data into SQLite database with a progress bar."""
     logger.info("Loading cleaned data into database...")
-    logger.debug(
-        f"Loading data into database: {db_path} , table name: {table_name}")
+    log_memory_usage()
 
-    try:
+    with sqlite3.connect(db_path) as conn:
         start_time = perf_counter()
+        conn.execute('PRAGMA optimize;')
+        
+        df['unique_key'] = df['movie_title'].astype(str) + '_' + df['title_year'].astype(str) + '_' + df['director_name'].astype(str)
+        
+        existing_keys = pd.read_sql(f'SELECT DISTINCT unique_key FROM {table_name}', conn)['unique_key'].tolist()
+        df = df[~df['unique_key'].isin(existing_keys)]  # Remove duplicates
+        
+        if not df.empty:
+            query = f'''
+            INSERT OR IGNORE INTO {table_name} (movie_title, title_year, director_name, unique_key) 
+            VALUES (?, ?, ?, ?)
+            '''
+        for row in tqdm(df.itertuples(index=False, name=None), desc="Inserting rows"):
+            conn.execute(query, tuple(row))
 
-        with sqlite3.connect(db_path) as conn:
-            conn.execute('PRAGMA optimize;')
-            df['unique_key'] = df['movie_title'].astype(
-                str) + '_' + df['title_year'].astype(str) + '_' + df['director_name'].astype(str)
+            
+            logger.info(f'Inserted {len(df)} new records.')
+        else:
+            logger.info('No new records to insert.')
 
-            existing_keys = pd.read_sql(f'SELECT DISTINCT unique_key FROM {table_name}', conn)[
-                'unique_key'].tolist()
-            logger.debug(f"Existing keys in DB: {existing_keys}")
-            logger.debug(
-                f"Keys in DF before deduplication: {df['unique_key'].tolist()}")
-            df = df[~df['unique_key'].isin(existing_keys)]  # Remove duplicates
-            logger.debug(
-                f"Keys remaining after deduplication: {df['unique_key'].tolist()}")
-            if not df.empty:
-
-                query = f'''
-                INSERT OR IGNORE INTO {table_name} (movie_title, title_year, director_name, unique_key) 
-                VALUES (?, ?, ?, ?)
-                '''
-
-                insert_start = perf_counter()
-                conn.executemany(query, df[[
-                    'movie_title', 'title_year', 'director_name', 'unique_key']].values.tolist())
-                insert_duration = perf_counter() - insert_start
-                logger.info(
-                    f'Inserted {len(df)} new records. Insert duration time: {insert_duration:.2f} seconds')
-            else:
-                logger.info('No new records to insert.')
 
         logger.debug(
             f"Unique keys about to be inserted: {df['unique_key'].tolist()}")
 
         logger.info(
             f'Bulk insert completed in {perf_counter()-start_time:.2f} seconds.')
-    except Exception as e:
-        logger.error(f'Database insert failed: {e}', exc_info=True)
+    
+    # except Exception as e:
+    #     logger.error(f'Database insert failed: {e}', exc_info=True)
 
 
 def parse_args():
