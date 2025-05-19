@@ -55,7 +55,7 @@ reel_etl/
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
-3. Install dependencies:
+3. Install dependencies (including Airflow and all ETL/analysis requirements):
 
    ```bash
    pip install -r requirements.txt
@@ -85,6 +85,34 @@ You can explore interactive documentation at:
 
 - Swagger UI: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 - ReDoc: [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
+
+---
+
+### Run the ETL Pipeline with Airflow
+
+If you want to orchestrate the ETL pipeline using Apache Airflow:
+
+1. **Initialize Airflow (first time only):**
+   ```bash
+   export AIRFLOW_HOME=$(pwd)/airflow
+   airflow db init
+   airflow users create \
+     --username admin \
+     --firstname Admin \
+     --lastname User \
+     --role Admin \
+     --email admin@example.com \
+     --password admin
+   ```
+
+2. **Start the Airflow webserver and scheduler:**
+   ```bash
+   airflow webserver -p 8080
+   airflow scheduler
+   ```
+
+3. **Access the Airflow UI:**  
+   Go to [http://localhost:8080](http://localhost:8080) and trigger the ETL DAG.
 
 ---
 
