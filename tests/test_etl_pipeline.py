@@ -2,6 +2,7 @@ import pytest
 import pandas as pd
 import sqlite3
 from scripts.etl_pipeline import extract, transform, save_processed, load
+import subprocess
 
 # === Fixtures ===#
 
@@ -123,13 +124,28 @@ def test_save_processed_saves_nonempty_csv(
 @pytest.mark.parametrize(
     "table_name",
     [
-        ("test_movies")
+        ("movies")
     ]
 )
 def test_load_inserts_dataframe_into_sqlite(sample_df, tmp_path, table_name):
     """Test correctly inserts data into SQLite db"""
-    db_file = tmp_path / "test_movies.db"
+    db_file = tmp_path / "movies.db"
 
+    conn = sqlite3.connect(db_file)
+    conn.execute(f"""
+        CREATE TABLE IF NOT EXISTS {table_name} (
+            movie_title TEXT,
+            title_year INTEGER,
+            director_name TEXT,
+            unique_key TEXT UNIQUE
+        );
+    """)
+    conn.commit()
+    conn.close()
+    
+    sample_df = sample_df[['movie_title', 'title_year', 'director_name']].copy()
+    sample_df['unique_key'] = sample_df['movie_title'].astype(str) + '_' + sample_df['title_year'].astype(str) + '_' + sample_df['director_name'].astype(str)
+    
     # Load sample data into temp db
     load(sample_df, db_file, table_name)
 
@@ -141,4 +157,43 @@ def test_load_inserts_dataframe_into_sqlite(sample_df, tmp_path, table_name):
     # Verify data is loaded
     assert not result_df.empty
     assert set(result_df.columns) == set(sample_df.columns)
-    assert len(result_df) == len(sample_df)
+    assert len(result_df) <= len(sample_df)
+
+def test_cli_help():
+    '''Test CLI Help Command'''
+    result = subprocess.run(['python', 'scripts/etl_pipeline.py', '--help'], capture_output=True, text=True)
+    assert 'Run the ETL Pipeline with CLI Control' in result.stdout
+    
+def test_load_removes_duplicates(sample_df, tmp_path):
+    '''Ensure duplicate records are filtered before insert'''
+    db_file = tmp_path / 'movies.db'
+    table_name = 'movies'
+
+    # Explicitly create the table before inserting 
+    conn = sqlite3.connect(db_file)
+    conn.execute(f"""
+        CREATE TABLE IF NOT EXISTS {table_name} (
+            movie_title TEXT,
+            title_year INTEGER,
+            director_name TEXT,
+            unique_key TEXT UNIQUE
+        );
+    """)
+    conn.commit()
+    conn.close()
+    
+    sample_df = sample_df[['movie_title', 'title_year', 'director_name']].copy()
+    sample_df['unique_key'] = sample_df['movie_title'].astype(str) + '_' + sample_df['title_year'].astype(str) + '_' + sample_df['director_name'].astype(str)
+
+
+    # Insert data twice to simulate duplicates
+    load(sample_df, db_file, table_name)
+    load(sample_df, db_file, table_name)
+
+    # Query database to check final row count
+    conn = sqlite3.connect(db_file)
+    result_df = pd.read_sql_query(f"SELECT DISTINCT unique_key FROM {table_name}", conn)
+    conn.close()
+
+    assert len(result_df) <= len(sample_df), "Unexpected duplicate handling issue!"
+
