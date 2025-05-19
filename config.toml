@@ -5,7 +5,7 @@ db_path = "movies.db"
 table_name = "movies"
 
 [validation]
-critcal_columns = ["movie_title", "title_year", "director_name"]
+critical_columns = ["movie_title", "title_year", "director_name"]
 
 [transformation]
 text_fields = ["genres", "language", "country"]
@@ -18,6 +18,6 @@ content_rating = "Not Rated"
 [logging]
 log_dir = "logs"
 rotating_log_file = "logs/etl_pipeline.log"
-json_log_file = "logs/etl_pipleine.json"
+json_log_file = "logs/etl_pipeline.json"
 max_log_size = 5000000                      # 5 MB
 backup_count = 5
