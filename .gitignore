@@ -40,3 +40,8 @@ Thumbs.db
 logs/
 *.log
 
+# Airflow metadata & logs
+airflow.db
+airflow/
+logs/
+dags/__pycache__/
