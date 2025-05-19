@@ -93,6 +93,7 @@ You can explore interactive documentation at:
 If you want to orchestrate the ETL pipeline using Apache Airflow:
 
 1. **Initialize Airflow (first time only):**
+
    ```bash
    export AIRFLOW_HOME=$(pwd)/airflow
    airflow db init
@@ -106,6 +107,7 @@ If you want to orchestrate the ETL pipeline using Apache Airflow:
    ```
 
 2. **Start the Airflow webserver and scheduler:**
+
    ```bash
    airflow webserver -p 8080
    airflow scheduler
