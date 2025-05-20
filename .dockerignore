@@ -1,0 +1,33 @@
+# Ignore Python virtual environments
+.venv/
+env/
+
+# Ignore compiled Python files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore log files & temporary data
+logs/
+*.log
+temp/
+*.tmp
+
+# Ignore raw data files that don’t need to be in the container
+data/raw/
+data/*.csv
+data/*.json
+
+# Ignore version control metadata
+.git/
+.gitignore
+
+# Ignore Docker-related artifacts
+docker-compose.override.yml
+docker-compose.yml
+Dockerfile
+
+# Ignore system-specific files
+.DS_Store
+Thumbs.db
