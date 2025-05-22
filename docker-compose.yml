@@ -1,0 +1,20 @@
+services:
+  etl_pipeline:
+    image: reel-etl:latest
+    container_name: etl_pipeline
+    build:
+      context: .
+    volumes:
+      - ./app:/app   # Mounts FastAPI and other scripts
+      - ./data:/app/data   # Ensures SQLite persistence
+      - ./scripts:/app/scripts # ETL Scripts
+      - ./data/raw:/app/data/raw # Raw data
+    ports:
+      - "8080:8080"  # Adjust if FastAPI runs on a different port
+    environment:
+      SQLITE_DB_PATH: "/app/data/movies.db"
+      CONFIG_PATH: "/app/config.toml"
+    restart: unless-stopped
+
+volumes:
+  sqlite_storage:  # Defines a persistent volume for SQLite (optional)
