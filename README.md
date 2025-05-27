@@ -1,166 +1,122 @@
 # Reel ETL
 
-Reel ETL is a Python-based data pipeline that extracts, transforms, and loads movie metadata into a SQLite database.  
-It includes robust logging, data validation, exploratory analysis, and an API for querying movie information.
-
----
+A Python-based data pipeline that extracts, transforms, and loads movie metadata into SQLite, with robust logging, validation, exploratory analysis, and an API for querying movie information.
 
 ## Features
 
-- ETL Pipeline: Extracts movie data from CSV, transforms it, and loads it into a database.
-- Logging: Console + JSON file logging with rotation.
-- Data Validation: Ensures critical fields and data types are correct.
-- Testing: Unit tests using `pytest`.
-- Exploration: Jupyter notebook and ydata-profiling report.
-- API: FastAPI app for querying movies by title and director.
-- SQL Queries: Pre-built analytical queries for insights.
-- Command-Line Scripts: Scripts to run the API server and tests easily.
-
----
+- **ETL Pipeline** – Extracts movie data from CSV, transforms it, and loads it into a database.
+- **Logging** – Console + JSON file logging with rotation.
+- **Data Validation** – Ensures data integrity and correctness.
+- **Testing** – Unit tests using `pytest`.
+- **Exploration** – Jupyter notebook & `ydata-profiling` report.
+- **API** – FastAPI app for querying movies by title and director.
+- **SQL Queries** – Pre-built analytical queries for insights.
 
 ## Project Structure
 
-```
+```sh
 reel_etl/
-├── app/                   # FastAPI app
-├── data/                  # Raw and processed CSV files
-├── logs/                  # JSON and text log files
-├── notebooks/             # Exploratory Jupyter notebooks
-├── reports/               # ydata-profiling HTML report
-├── scripts/               # Utility scripts and ETL pipeline
-├── tests/                 # Unit tests
-├── movies.db              # SQLite database
-├── run_api.sh             # Bash script to launch the API server
-├── run_tests.sh           # Bash script to run tests
-├── requirements.txt       # Python dependencies
+├── app/            # FastAPI app
+├── data/           # Raw and processed CSV files
+├── logs/           # JSON and text log files
+├── notebooks/      # Exploratory Jupyter notebooks
+├── reports/        # Data profiling report
+├── scripts/        # ETL pipeline and utilities
+├── tests/          # Unit tests
+├── movies.db       # SQLite database
+├── run_api.sh      # Script to launch API
+├── run_tests.sh    # Script to run tests
+├── requirements.txt # Python dependencies
 ├── .gitignore
 ├── README.md
 ```
 
----
-
 ## Installation
 
-1. Clone the repository:
+1. **Clone the repository**
 
-   ```bash
+   ```sh
    git clone https://github.com/joeybiotti/reel_etl.git
    cd reel_etl
    ```
 
-2. Create a virtual environment:
+2. **Create a virtual environment**
 
-   ```bash
+   ```sh
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
-3. Install dependencies (including Airflow and all ETL/analysis requirements):
+3. **Install dependencies**
 
-   ```bash
+   ```sh
    pip install -r requirements.txt
    ```
 
-4. Run the ETL pipeline:
-
-   ```bash
+4. **Run the ETL pipeline**
+   ```sh
    python scripts/etl_pipeline.py
    ```
-
----
 
 ## Running the Application
 
 ### Start the API
 
-To launch the FastAPI server:
-
-```bash
+```sh
 ./run_api.sh
 ```
 
-The API will be available at [http://127.0.0.1:8000](http://127.0.0.1:8000).
+Access:
 
-You can explore interactive documentation at:
+- **API** – [http://127.0.0.1:8000](http://127.0.0.1:8000)
+- **Swagger UI** – [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+- **ReDoc** – [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
 
-- Swagger UI: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-- ReDoc: [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
+### Run ETL Pipeline with Airflow
 
----
+```sh
+export AIRFLOW_HOME=$(pwd)/airflow
+airflow db init
+airflow webserver -p 8080
+airflow scheduler
+```
 
-### Run the ETL Pipeline with Airflow
+Trigger the DAG via [http://localhost:8080](http://localhost:8080).
 
-If you want to orchestrate the ETL pipeline using Apache Airflow:
+## Running Tests
 
-1. **Initialize Airflow (first time only):**
-   ```bash
-   export AIRFLOW_HOME=$(pwd)/airflow
-   airflow db init
-   airflow users create \
-     --username admin \
-     --firstname Admin \
-     --lastname User \
-     --role Admin \
-     --email admin@example.com \
-     --password admin
-   ```
-
-2. **Start the Airflow webserver and scheduler:**
-   ```bash
-   airflow webserver -p 8080
-   airflow scheduler
-   ```
-
-3. **Access the Airflow UI:**  
-   Go to [http://localhost:8080](http://localhost:8080) and trigger the ETL DAG.
-
----
-
-### Run the Tests
-
-To execute all unit tests:
-
-```bash
+```sh
 ./run_tests.sh
 ```
 
-Make sure `pytest` is installed:
+If needed:
 
-```bash
+```sh
 pip install pytest
 ```
 
----
-
 ## Quick Start Summary
 
-- **ETL Pipeline**: `python scripts/etl_pipeline.py`
-- **Data Exploration**: Open `notebooks/explore_movies.ipynb`
-- **Data Profiling**: View `reports/movie_data_profile.html`
-- **Launch API**: `./run_api.sh`
-- **Run Tests**: `./run_tests.sh`
-
----
+| Action                    | Command                                |
+| ------------------------- | -------------------------------------- |
+| **Run ETL**               | `python scripts/etl_pipeline.py`       |
+| **Explore Data**          | Open `notebooks/explore_movies.ipynb`  |
+| **View Profiling Report** | Open `reports/movie_data_profile.html` |
+| **Launch API**            | `./run_api.sh`                         |
+| **Run Tests**             | `./run_tests.sh`                       |
 
 ## Tech Stack
 
-- Python 3.8+
-- Pandas
-- FastAPI
-- SQLite
-- pytest
-- ydata-profiling
-- Seaborn and Matplotlib
-
----
+- **Python 3.8+**
+- **Pandas, FastAPI, SQLite**
+- **pytest, ydata-profiling**
+- **Seaborn, Matplotlib**
 
 ## License
 
-This project is licensed under the MIT License.
-
----
+MIT License
 
 ## Acknowledgements
 
-Inspired by classic data engineering and analytics workflows.  
+Inspired by classic data engineering workflows.  
 Built by [@joeybiotti](https://github.com/joeybiotti).
