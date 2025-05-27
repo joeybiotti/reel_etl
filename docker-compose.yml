@@ -1,0 +1,20 @@
+services:
+  etl_service: 
+    image: reel_etl:latest
+    container_name: etl_pipeline
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /workspace
+    volumes:
+      - ./scripts:/workspace/scripts
+      - ./data/raw:/workspace/data/raw
+      - ./logs:/workspace/logs  # Persist logs
+      - sqlite_storage:/workspace/data  # Ensure SQLite DB persistence
+    environment:
+      - AIRFLOW_HOME=/workspace
+    entrypoint: ["python", "scripts/etl_pipeline.py"]
+    restart: unless-stopped
+
+volumes:
+  sqlite_storage:  # Named volume for database persistence
