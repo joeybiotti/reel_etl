@@ -1,20 +1,20 @@
 services:
-  etl_pipeline:
-    image: reel-etl:latest
+  etl_service: 
+    image: reel_etl:latest
     container_name: etl_pipeline
     build:
       context: .
+      dockerfile: Dockerfile
+    working_dir: /workspace
     volumes:
-      - ./app:/app   # Mounts FastAPI and other scripts
-      - ./data:/app/data   # Ensures SQLite persistence
-      - ./scripts:/app/scripts # ETL Scripts
-      - ./data/raw:/app/data/raw # Raw data
-    ports:
-      - "8080:8080"  # Adjust if FastAPI runs on a different port
+      - ./scripts:/workspace/scripts
+      - ./data/raw:/workspace/data/raw
+      - ./logs:/workspace/logs  # Persist logs
+      - sqlite_storage:/workspace/data  # Ensure SQLite DB persistence
     environment:
-      SQLITE_DB_PATH: "/app/data/movies.db"
-      CONFIG_PATH: "/app/config.toml"
+      - AIRFLOW_HOME=/workspace
+    entrypoint: ["python", "scripts/etl_pipeline.py"]
     restart: unless-stopped
 
 volumes:
-  sqlite_storage:  # Defines a persistent volume for SQLite (optional)
+  sqlite_storage:  # Named volume for database persistence

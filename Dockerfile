@@ -1,20 +1,21 @@
 # Use the official Airflow image (prebuilt)
 FROM apache/airflow:2.6.3-python3.8
 
-# Set working directory first to ensure consistent paths
+# Set working directory
 WORKDIR /workspace
 
-# Copy only the requirements file first (for caching)
+# Copy dependencies first (optimizes caching)
 COPY requirements.txt .
 COPY config.toml .
 
-# Install additional dependencies **excluding Airflow**, since it's already in the base image
-RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install tomli
+# Install additional dependencies excluding Airflow (already in the base image)
+RUN pip install --no-cache-dir -r requirements.txt && pip install --no-cache-dir tomli python-json-logger
 
-# Copy the rest of your project files **after dependencies are installed** to speed up rebuilds
-COPY scripts/ scripts/
-COPY data/ data/
+# Copy scripts and project files AFTER dependencies (reduces unnecessary rebuilds)
+COPY scripts/ /workspace/scripts/
 
-# Define default command to run the ETL pipeline
-CMD ["python", "scripts/etl_pipeline.py"]
+# Set up logging for better debugging inside the container
+RUN mkdir -p /workspace/logs
+
+# Default entry point for running the ETL pipeline
+ENTRYPOINT ["python", "scripts/etl_pipeline.py"]
